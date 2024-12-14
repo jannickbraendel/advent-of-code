@@ -1,5 +1,5 @@
 
-def parse(file):
+def parse(file, largePrize):
     machines = [[]]
     with (open(file, "r") as file):
         machine_id = 0
@@ -18,41 +18,48 @@ def parse(file):
             else:
                 prize_x = int(line.lstrip("Prize: X=").split(",")[0])
                 prize_y = int(line.split(",")[1].lstrip(" Y=").rstrip("\n"))
-                machines[machine_id].append((prize_x + 10000000000000, prize_y + 10000000000000))
+                if largePrize:
+                    machines[machine_id].append((prize_x + 10000000000000, prize_y + 10000000000000))
+                else:
+                    machines[machine_id].append((prize_x, prize_y))
 
         return machines
 
 
 def calc_tokens_for_price(machine):
-    but_a = machine[0]
-    but_b = machine[1]
-    prize = machine[2]
+    but_a, but_b, prize = machine
 
     # go through A positions and check if we can get to the price by pressing B
     # max. 100 times
-    for a_tokens in range(1, 100):
-        pos_x = a_tokens * but_a[0]
-        pos_y = a_tokens * but_a[1]
-
-        missing_x = prize[0] - pos_x
-        missing_y = prize[1] - pos_y
-
-        for b_tokens in range(1, 100):
-            if b_tokens * but_b[0] == missing_x and b_tokens * but_b[1] == missing_y:
-                return a_tokens * 3 + b_tokens
+    for a in range(1, 101):
+        for b in range(1, 101):
+            pos = a * but_a[0] + b * but_b[0], a * but_a[1] + b * but_b[1]
+            if pos[0] == prize[0] and pos[1] == prize[1]:
+                return a * 3 + b
 
     return 0
 
 
+def solve_tokens_large(machine):
+    # solve linear equation system instead of bruteforce
+    but_a, but_b, prize = machine
+    a = (prize[0] * but_b[1] - prize[1] * but_b[0]) / (but_a[0] * but_b[1] - but_a[1] * but_b[0])
+    b = (prize[0] - a * but_a[0]) / but_b[0]
+
+    if a % 1 == b % 1 == 0:
+        return int(a * 3 + b)
+    return 0
+
+
 def calc_tokens(file):
-    machines = parse(file)
+    machines = parse(file, True)
     result = 0
     for machine in machines:
         print(f"machine: {machines.index(machine)}")
-        result += calc_tokens_for_price(machine)
+        result += solve_tokens_large(machine)
 
     return result
 
 
-print(calc_tokens("day13-small.txt"))
+print(calc_tokens("day13.txt"))
 
