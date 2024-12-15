@@ -1,19 +1,6 @@
 from functools import reduce
 from operator import mul
 
-small_size = (11, 7)
-size = (101, 103)
-
-# dict: (start, velocity) : position
-robots = {}
-with open("day14.txt") as file:
-    for line in file.readlines():
-        s = line.split(",")
-        start = (int(s[0].lstrip("p=")), int(s[1].split()[0]))
-        vel = (int(s[1].split()[1].lstrip("v=")), int(s[2]))
-        # starts at starting position
-        robots[(start, vel)] = start
-
 
 def move_per_second(robot, size):
     global robots
@@ -44,9 +31,11 @@ def safety_factor(size):
 
 def check_christmas_tree(size):
     global robots
-    result = False
-
-    return result
+    for i in range(size[0]):
+        for j in range(size[1]):
+            if len([pos for pos in robots.values() if pos == (i, j)]) > 1:
+                return False
+    return True
 
 
 def visualize(size):
@@ -71,24 +60,34 @@ def puzzle_1(size):
 
 
 def puzzle_2(size):
-    seconds_passed = 0
+    seconds_passed = 1
     while True:
         for robot in robots.keys():
             move_per_second(robot, size)
         if check_christmas_tree(size):
+            print(visualize(size))
             return seconds_passed
-
+        print(seconds_passed)
+        seconds_passed += 1
         if seconds_passed >= 10000:
             # safety net
             return 0
 
 
-# VISUALIZE:
-for i in range(2000):
-    print(i)
-    print(visualize(size))
-    for robot in robots.keys():
-        move_per_second(robot, size)
+small_size = (11, 7)
+size = (101, 103)
+
+# dict: (start, velocity) : position
+robots = {}
+with open("day14.txt") as file:
+    for line in file.readlines():
+        s = line.split(",")
+        start = (int(s[0].lstrip("p=")), int(s[1].split()[0]))
+        vel = (int(s[1].split()[1].lstrip("v=")), int(s[2]))
+        # starts at starting position
+        robots[(start, vel)] = start
+
+print(puzzle_2(size))
 
 
 
