@@ -28,21 +28,32 @@ def parse(file):
     middle = lines.index("\n")
     warehouse = []
     movements = []
+    boxes = []
     warehouse_rows = [row.rstrip("\n") for row in [lines[i] for i in range(middle)]]
-    for r in warehouse_rows:
+    for i, r in enumerate(warehouse_rows):
         new_row = []
-        for x in r:
-            if x == "#":
+        for j, s in enumerate(r):
+            if s == "#":
                 new_row += ["#", "#"]
-            elif x == "O":
+            elif s == "O":
                 new_row += ["[", "]"]
-            elif x == "." or x == "@":
-                new_row += [x, "."]
+                boxes.append(((i, j*2), (i, j*2 + 1)))
+            elif s == "." or s == "@":
+                new_row += [s, "."]
         warehouse.append(new_row)
     movement_rows = [lines[i].rstrip("\n") for i in range(middle + 1, len(lines))]
     for m in movement_rows:
         movements += [x for x in m]
-    return warehouse, movements
+    return warehouse, movements, boxes
+
+
+def get_box_positions():
+    global boxes
+    return [box[0] for box in boxes] + [box[1] for box in boxes]
+
+
+def push_boxes(box, direction):
+    global warehouse, boxes
 
 
 # changes state of warehouse and returns robot position after one move
@@ -56,28 +67,10 @@ def move_robot_wide(pos, direction):
         warehouse[pos[0]][pos[1]] = "."
         warehouse[nx][ny] = "@"
         return nx, ny
-    else:
-        # find last box in the way
-        x, y = nx, ny
-        while warehouse[x][y] == "]":
-            # move 2 steps
-            x, y = move(move((x, y), direction), direction)
-            print(f"move boxes: {x, y}")
-        if warehouse[x][y] == ".":
-            # move each part of box one step further
-            # loop from free field towards new robot position
-            ix, iy = x, y
-            reverse = reverse_direction(direction)
-            while (ix, iy) != (nx, ny):
-                warehouse[ix][iy] = "["
-                ix, iy = move((ix, iy), reverse)
-                warehouse[ix][iy] = "]"
-
-            # move robot to next position
-            warehouse[pos[0]][pos[1]] = "."
-            warehouse[nx][ny] = "@"
+    elif (nx, ny) in get_box_positions():
+        # push boxes if possible
+        if push_boxes((nx, ny), direction):
             return nx, ny
-
     # next position is wall or non-movable box
     return pos
 
@@ -127,7 +120,7 @@ def compute_box_coords():
     return result
 
 
-warehouse, movements = parse("day15-small.txt")
-print(warehouse)
-print(movements)
-execute_movements()
+warehouse, movements, boxes = parse("day15-small.txt")
+print(boxes)
+print(get_box_positions())
+# execute_movements()
