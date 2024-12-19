@@ -28,7 +28,7 @@ def parse(file):
     middle = lines.index("\n")
     warehouse = []
     movements = []
-    boxes = []
+    boxes: [(int, int)] = []
     warehouse_rows = [row.rstrip("\n") for row in [lines[i] for i in range(middle)]]
     for i, r in enumerate(warehouse_rows):
         new_row = []
@@ -37,7 +37,7 @@ def parse(file):
                 new_row += ["#", "#"]
             elif s == "O":
                 new_row += ["[", "]"]
-                boxes.append(((i, j*2), (i, j*2 + 1)))
+                boxes.append((i, j*2))
             elif s == "." or s == "@":
                 new_row += [s, "."]
         warehouse.append(new_row)
@@ -47,18 +47,9 @@ def parse(file):
     return warehouse, movements, boxes
 
 
-def get_box_positions():
-    global boxes
-    return [box[0] for box in boxes] + [box[1] for box in boxes]
-
-
-def push_boxes(box, direction):
-    global warehouse, boxes
-
-
 # changes state of warehouse and returns robot position after one move
 def move_robot_wide(pos, direction):
-    global warehouse
+    global warehouse, boxes
 
     nx, ny = move(pos, direction)
 
@@ -67,10 +58,67 @@ def move_robot_wide(pos, direction):
         warehouse[pos[0]][pos[1]] = "."
         warehouse[nx][ny] = "@"
         return nx, ny
-    elif (nx, ny) in get_box_positions():
-        # push boxes if possible
-        if push_boxes((nx, ny), direction):
+    elif warehouse[nx][ny] == "#":
+        # wall
+        return pos
+    else:
+        # recursive function to fill movable boxes array
+        # if boxes can be moved -> true else False
+        movable_boxes = set([])
+
+        def get_movable_boxes(position, direction):
+            x, y = position
+            if warehouse[x][y] == ".":
+                return True
+            elif warehouse[x][y] == "#":
+                return False
+            elif (x, y) in boxes:
+                left_half = (x, y)
+                right_half = (x, y + 1)
+            elif (x, y - 1) in boxes:
+                left_half = (x, y - 1)
+                right_half = (x, y)
+
+            movable_boxes.add(left_half)
+
+            next_left = move(left_half, direction)
+            next_right = move(right_half, direction)
+
+            if direction in [Direction.UP, Direction.DOWN]:
+                return get_movable_boxes(next_left, direction) and get_movable_boxes(next_right, direction)
+            elif direction == Direction.LEFT:
+                return get_movable_boxes(next_left, direction)
+            else:
+                return get_movable_boxes(next_right, direction)
+
+        if get_movable_boxes((nx, ny), direction):
+            if direction in [Direction.UP, Direction.DOWN]:
+                # sort by vertical distance
+                key = lambda box: abs(box[0] - pos[0])
+            else:
+                # sort by horizontal distance
+                key = lambda box: abs(box[1] - pos[1])
+
+            sorted_movable_boxes = sorted(list(movable_boxes), key=key, reverse=True)
+
+            for blx, bly in sorted_movable_boxes:
+                brx, bry = blx, bly + 1
+
+                nlx, nly = move((blx, bly), direction)
+                nrx, nry = move((brx, bry), direction)
+
+                warehouse[blx][bly] = "."
+                boxes.remove((blx, bly))
+                warehouse[brx][bry] = "."
+                warehouse[nlx][nly] = "["
+                boxes.append((nlx, nly))
+                warehouse[nrx][nry] = "]"
+
+            # move robot to next position
+            warehouse[pos[0]][pos[1]] = "."
+            warehouse[nx][ny] = "@"
             return nx, ny
+
     # next position is wall or non-movable box
     return pos
 
@@ -120,7 +168,7 @@ def compute_box_coords():
     return result
 
 
-warehouse, movements, boxes = parse("day15-small.txt")
-print(boxes)
-print(get_box_positions())
-# execute_movements()
+# boxes stores only the left half of each box
+warehouse, movements, boxes = parse("day15.txt")
+execute_movements()
+print(compute_box_coords())
