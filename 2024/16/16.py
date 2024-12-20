@@ -4,7 +4,6 @@ from math import inf
 
 def parse(file):
     result = []
-    walls = []
     rows = [line.rstrip("\n") for line in open(file, "r").readlines()]
     start = (0, 0)
     end = (0, 0)
@@ -15,12 +14,10 @@ def parse(file):
                 start = (i, j)
             elif x == "E":
                 end = (i, j)
-            elif x == "#":
-                walls.append((i, j))
             a.append(x)
         result.append(a)
 
-    return result, start, end, walls
+    return result, start, end
 
 
 class Direction(Enum):
@@ -89,11 +86,10 @@ def minimum_score():
     return result
 
 
-maze, start_pos, end_pos, walls = parse("day16.txt")
+maze, start_pos, end_pos = parse("day16.txt")
 # cells that are part of the current path buffer
 blocked = set()
 paths = []
-print(walls)
 
 find_shortest_path(start_pos, Direction.RIGHT, [(start_pos, Direction.RIGHT)])
 print(minimum_score())
