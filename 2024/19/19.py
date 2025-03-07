@@ -7,44 +7,44 @@ def parse(file):
     return patterns_local, designs_local
 
 
-class TowelNode:
-    def __init__(self, pattern):
-        self.pattern = pattern
-        self.children = []
+def check_design(design):
 
-    def add_child(self, child):
-        self.children.append(child)
+    # array of bool values: true if design can be made UNTIL that index
+    bool_array = [False for _ in range(len(design) + 1)]
 
+    # empty design can always be made
+    bool_array[0] = True
 
-def search_design(design):
-    print(f"design: {design}")
-    root = TowelNode("")
-    queue = [root]
-    while len(queue) > 0:
-        current = queue.pop(0)
+    for i in range(1, len(design) + 1):
+        for pattern in patterns:
+            if i >= len(pattern) and bool_array[i - len(pattern)]:
+                if design[i - len(pattern) : i] == pattern:
+                    bool_array[i] = True
 
-        if current.pattern == design:
-            return True
-        print(f"queue: {len(queue)}")
-
-        child_patterns = [(current.pattern + p) for p in patterns]
-        for cp in child_patterns:
-            if not design.startswith(cp):
-                continue
-            node = TowelNode(cp)
-            current.add_child(node)
-            queue.append(node)
-
-    return False
+    return bool_array[len(design)]
 
 
-patterns, designs = parse("day19-small.txt")
+def check_design_2(design):
+
+    amount_array = [0] * (len(design) + 1)
+    amount_array[0] = 1
+
+    for i in range(1, len(design) + 1):
+        for pattern in patterns:
+            if i >= len(pattern) and amount_array[i - len(pattern)] > 0:
+                if design[i - len(pattern) : i] == pattern:
+                    amount_array[i] += amount_array[i - len(pattern)]
+
+    print(amount_array)
+
+    return amount_array[len(design)]
+
+patterns, designs = parse("day19.txt")
 
 
 possible_designs = 0
 for i, d in enumerate(designs):
-    print(i)
-    possible_designs += search_design(d)
+    possible_designs += check_design_2(d)
 
 print(possible_designs)
 
